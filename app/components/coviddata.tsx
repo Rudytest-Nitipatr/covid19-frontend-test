@@ -148,17 +148,22 @@ export default function CovidData({ }: Props) {
                     <tbody>
                         {sortedCurrentData.map(([date, casesCount]) => (
                             <tr key={date}>
-                                <td className="border px-2 py-2 text-xs md:text-base">{formatDate(date)}</td>
-                                <td className="border px-2 py-2 text-xs md:text-base">{String(casesCount)}</td>
                                 <td className="border px-2 py-2 text-xs md:text-base">
-                                    {String(historicalData.deaths[date])}
+                                    {formatDate(date as string)}
                                 </td>
                                 <td className="border px-2 py-2 text-xs md:text-base">
-                                    {String(historicalData.recovered[date])}
+                                    {String(casesCount)}
+                                </td>
+                                <td className="border px-2 py-2 text-xs md:text-base">
+                                    {String(historicalData.deaths[date as string])}
+                                </td>
+                                <td className="border px-2 py-2 text-xs md:text-base">
+                                    {String(historicalData.recovered[date as string])}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
+
 
                 </table>
                 <div className="pagination flex justify-center pt-5">
