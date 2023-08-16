@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 type Props = {};
 
-export default function Home({}: Props) {
+export default function Home({ }: Props) {
   const [selectedDays, setSelectedDays] = useState(30);
   const [historicalData, setHistoricalData] = useState({ cases: {}, deaths: {}, recovered: {} });
   const [latestDataUpdate, setLatestDataUpdate] = useState<string | null>(null);
@@ -49,9 +49,9 @@ export default function Home({}: Props) {
     setCurrentPage(pageNumber);
   };
 
-  const handleItemPerPageChange = (value: number | "all") =>{
-    setItemPerPage(value);
-  }
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+  };  
 
   return (
     <div className="p-6">
@@ -93,6 +93,7 @@ export default function Home({}: Props) {
             <option value={30}>30</option>
             <option value={90}>90</option>
           </select>
+
         </div>
       </div>
       <div className="overflow-x-auto">
