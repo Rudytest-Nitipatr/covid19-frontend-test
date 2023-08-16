@@ -20,6 +20,9 @@ export default function CovidData({ }: Props) {
     const [latestDataUpdate, setLatestDataUpdate] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [isLoadingLatestData, setIsLoadingLatestData] = useState(true);
+    const [isLoadingSortedData, setIsLoadingSortedData] = useState(true);
+    const [isLoadingPagination, setIsLoadingPagination] = useState(true);
 
     const formatDate = (date: string) => {
         const [month, day, year] = date.split("/");
@@ -31,17 +34,34 @@ export default function CovidData({ }: Props) {
     useEffect(() => {
         async function fetchData() {
             try {
+                setIsLoadingLatestData(true);
+                setIsLoadingSortedData(true);
+                setIsLoadingPagination(true);
+
                 const result = await fetch(`https://disease.sh/v3/covid-19/historical/all?lastdays=${selectedDays}`);
                 const data = await result.json();
                 setHistoricalData(data);
 
-                // Get the latest data update date
                 const latestDate = Object.keys(data.cases).pop();
                 if (latestDate) {
                     setLatestDataUpdate(latestDate);
                 }
+
+                // Introduce a delay of 0.5 seconds before turning off loading
+                setTimeout(() => {
+                    setIsLoadingLatestData(false);
+                    setIsLoadingSortedData(false);
+                    setIsLoadingPagination(false);
+                }, 500);
             } catch (error) {
                 console.error("Error fetching data:", error);
+
+                // Introduce a delay of 0.5 seconds before turning off loading
+                setTimeout(() => {
+                    setIsLoadingLatestData(false);
+                    setIsLoadingSortedData(false);
+                    setIsLoadingPagination(false);
+                }, 500);
             }
         }
 
@@ -89,9 +109,13 @@ export default function CovidData({ }: Props) {
                         : `${selectedDays} Days`}
             </h1>
             <div className="mb-4">
-                {latestDataUpdate && (
+            {isLoadingLatestData ? (
+                    <div className="my-5 animate-pulse">
+                        <div className="bg-slate-200 h-4 w-40 rounded"></div>
+                    </div>
+                ) : (
                     <p className="mb-2">
-                        Latest data : {formatDate(latestDataUpdate)}
+                        Latest data : {formatDate(latestDataUpdate as string)}
                     </p>
                 )}
                 <div className="mb-2">
@@ -146,7 +170,24 @@ export default function CovidData({ }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedCurrentData.map(([date, casesCount]) => (
+                    {isLoadingSortedData
+                            ? Array.from({ length: itemsPerPage }).map((_, index) => (
+                                  <tr key={`skeleton-${index}`}>
+                                      <td className="border animate-pulse px-2 py-2 text-xs md:text-base">
+                                          <div className="bg-slate-200 h-4 w-12 rounded"></div>
+                                      </td>
+                                      <td className="border animate-pulse px-2 py-2 text-xs md:text-base">
+                                          <div className="bg-slate-200 h-4 w-12 rounded"></div>
+                                      </td>
+                                      <td className="border animate-pulse px-2 py-2 text-xs md:text-base">
+                                          <div className="bg-slate-200 h-4 w-12 rounded"></div>
+                                      </td>
+                                      <td className="border animate-pulse px-2 py-2 text-xs md:text-base">
+                                          <div className="bg-slate-200 h-4 w-12 rounded"></div>
+                                      </td>
+                                  </tr>
+                              ))
+                            : sortedCurrentData.map(([date, casesCount]) => (
                             <tr key={date}>
                                 <td className="border px-2 py-2 text-xs md:text-base">
                                     {formatDate(date as string)}
@@ -167,24 +208,32 @@ export default function CovidData({ }: Props) {
 
                 </table>
                 <div className="pagination flex justify-center pt-5">
-                    <button
-                        className="pagination-button px-5"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        Previous
-                    </button>
-                    <span className="pagination-info text-center px-8">
-                        {currentPage} of {totalPages}
-                    </span>
-                    <button
-                        className="pagination-button px-5"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        Next
-                    </button>
-                </div>
+                {isLoadingPagination ? (
+                    <div className="flex items-center">
+                        <div className="bg-gray-300 h-4 w-16 rounded"></div>
+                    </div>
+                ) : (
+                    <React.Fragment>
+                        <button
+                            className="pagination-button px-5"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </button>
+                        <span className="pagination-info text-center px-8">
+                            {currentPage} of {totalPages}
+                        </span>
+                        <button
+                            className="pagination-button px-5"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </button>
+                    </React.Fragment>
+                )}
+            </div>
             </div>
         </div>
     );
