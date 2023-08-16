@@ -32,6 +32,7 @@ export default function CovidData({ }: Props) {
 
 
     useEffect(() => {
+        
         async function fetchData() {
             try {
                 setIsLoadingLatestData(true);
