@@ -1,113 +1,141 @@
-import Image from 'next/image'
+"use client"
+import React, { useEffect, useState } from "react";
 
-export default function Home() {
+type Props = {};
+
+export default function Home({}: Props) {
+  const [selectedDays, setSelectedDays] = useState(30);
+  const [historicalData, setHistoricalData] = useState({ cases: {}, deaths: {}, recovered: {} });
+  const [latestDataUpdate, setLatestDataUpdate] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const formatDate = (date: string) => {
+    const [month, day, year] = date.split("/");
+    return `${day}/${month}/${year}`;
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const result = await fetch(`https://disease.sh/v3/covid-19/historical/all?lastdays=${selectedDays}`);
+        const data = await result.json();
+        setHistoricalData(data);
+
+        // Get the latest data update date
+        const latestDate = Object.keys(data.cases).pop();
+        if (latestDate) {
+          setLatestDataUpdate(latestDate);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    fetchData();
+  }, [selectedDays]);
+
+  const handleDaysChange = (days: number) => {
+    setSelectedDays(days);
+    setCurrentPage(1);
+  };
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentData = Object.entries(historicalData.cases).slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(Object.keys(historicalData.cases).length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handleItemPerPageChange = (value: number | "all") =>{
+    setItemPerPage(value);
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">COVID-19 Historical Data for the Last {selectedDays} Days</h1>
+      <div className="mb-4">
+        {latestDataUpdate && (
+          <p className="mb-2">
+            Latest data update at {formatDate(latestDataUpdate)}.
+          </p>
+        )}
+        <div className="mb-2">
+          <label htmlFor="days" className="mr-2">
+            Select days:
+          </label>
+          <select
+            id="days"
+            className="bg-white border border-gray-300 rounded px-3 py-1"
+            value={selectedDays}
+            onChange={(e) => handleDaysChange(Number(e.target.value))}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            <option value={3}>3 Days</option>
+            <option value={7}>7 Days</option>
+            <option value={21}>21 Days</option>
+            <option value={30}>30 Days</option>
+            <option value={90}>90 Days</option>
+          </select>
+        </div>
+        <div className="items-per-page">
+          <label htmlFor="itemsPerPage" className="mr-2">
+            Items per page:
+          </label>
+          <select
+            id="itemsPerPage"
+            className="bg-white border border-gray-300 rounded px-3 py-1"
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+          >
+            <option value={10}>10</option>
+            <option value={30}>30</option>
+            <option value={90}>90</option>
+          </select>
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto border-collapse border">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-2 py-2 text-xs md:text-base">Date</th>
+              <th className="border px-2 py-2 text-xs md:text-base">Cases</th>
+              <th className="border px-2 py-2 text-xs md:text-base">Deaths</th>
+              <th className="border px-2 py-2 text-xs md:text-base">Recovered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentData.map(([date, casesCount]) => (
+              <tr key={date}>
+                <td className="border px-2 py-2 text-xs md:text-base">{formatDate(date)}</td>
+                <td className="border px-2 py-2 text-xs md:text-base">{casesCount}</td>
+                <td className="border px-2 py-2 text-xs md:text-base">{historicalData.deaths[date]}</td>
+                <td className="border px-2 py-2 text-xs md:text-base">{historicalData.recovered[date]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="pagination">
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className="pagination-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    </div>
+  );
 }
