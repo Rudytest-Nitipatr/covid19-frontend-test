@@ -1,5 +1,5 @@
-"use client"
-import React, { useEffect, useState } from "react";
+"use client" //คอมโพเนนต์นี้ใช้งานฝั่งไคลเอนต์
+import React, { useEffect, useState } from "react"; //ใช้ useEffect และ useState ร่วมกับตัวแปร
 import {
     LineChart,
     BarChart,
@@ -10,11 +10,11 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-} from "recharts";
+} from "recharts"; //ใช้ library recharts ในการทำกราฟข้อมูล
 
 type Props = {};
 
-// Define the type for historicalData
+// ประกาศชนิดข้อมูล
 type HistoricalData = {
     cases: Record<string, number>;
     deaths: Record<string, number>;
@@ -22,27 +22,48 @@ type HistoricalData = {
 };
 
 export default function CovidData({ }: Props) {
-    const [selectedDays, setSelectedDays] = useState(30);
+    const [selectedDays, setSelectedDays] = useState(30); //ประกาศตัวแปรจำนวนวันที่ต้องการแสดง มีค่าเริ่มต้นเป็น30
     const [historicalData, setHistoricalData] = useState<HistoricalData>({
         cases: {},
         deaths: {},
         recovered: {},
-    });
-    const [latestDataUpdate, setLatestDataUpdate] = useState<string | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [isLoadingLatestData, setIsLoadingLatestData] = useState(true);
-    const [isLoadingSortedData, setIsLoadingSortedData] = useState(true);
-    const [isLoadingPagination, setIsLoadingPagination] = useState(true);
-    const [chartData, setChartData] = useState<{ date: string; cases: number }[]>([]);
-    const [selectedChartType, setSelectedChartType] = useState<"line" | "bar">("line");
+    }); //ประกาศตัวแปรไว้เก็บข้อมูล cases, deaths และ recovered
+    const [latestDataUpdate, setLatestDataUpdate] = useState<string | null>(null); //ประกาศตัวแปรแสดงวันที่ของข้อมูลล่าสุด
+    const [currentPage, setCurrentPage] = useState(1); //ประกาศตัวแปรหน้าที่กำลังแสดง(pagination)
+    const [itemsPerPage, setItemsPerPage] = useState(10); //ประกาศตัวแปรจำนวนข้อมูลที่ต้องการแสดงต่อหน้า มีค่าเริ่มต้นเป็น 10
+    const [isLoadingLatestData, setIsLoadingLatestData] = useState(true); //ประกาศตัวแปร lazy loading แสดงระหว่างกำลังดึงข้อมูล(ข้อมูลวันที่ล่าสุด)
+    const [isLoadingSortedData, setIsLoadingSortedData] = useState(true); //ประกาศตัวแปร lazy loading แสดงระหว่างกำลังดึงข้อมูล(ข้อมูลในตาราง)
+    const [isLoadingPagination, setIsLoadingPagination] = useState(true); //ประกาศตัวแปร lazy loading แสดงระหว่างกำลังดึงข้อมูล(ข้อมูลจำนวนหน้า)
+    const [chartData, setChartData] = useState<{ date: string; cases: number }[]>([]); //ประกาศตัวแปรข้อมูลที่จะมาใช้แสดงในกราฟ พร้อมทั้งประกาศชนิดของข้อมูล
+    const [selectedChartType, setSelectedChartType] = useState<"line" | "bar">("line"); //ประกาศตัวแปรกำหนดชนิดของกราฟที่ต้องการเปลี่ยน
+
+    // ประกาศตัวแปร ให้ข้อมูลในกราฟสัมพันธ์กับข้อมูลตามหน้าของตาราง ผ่านการควบคุมของแผงเครื่องมือ
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const slicedChartData = chartData.slice(startIndex, endIndex);
+
+    const CustomXAxis = ({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => (
+        <g transform={`translate(${x},${y})`}>
+            <text
+                x={0}
+                y={0}
+                dy={16}
+                textAnchor="middle"
+                fill="#666"
+                transform="rotate(0)"
+                fontSize="12px" // ปรับขนาดตัวอักษรตามที่ต้องการ
+            >
+                {payload.value}
+            </text>
+        </g>
+    ); //กำหนดตัวแปรในการจัดการข้อมูลที่แสดงในแกน X ในที่นี้เป็นวันที่
 
     const renderChart = () => {
         if (selectedChartType === "line") {
             return (
-                <LineChart data={chartData}>
+                <LineChart data={slicedChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date"/>
+                    <XAxis dataKey="date" tick={CustomXAxis} />
                     <Tooltip />
                     <Legend />
                     <Line
@@ -63,9 +84,9 @@ export default function CovidData({ }: Props) {
             );
         } else {
             return (
-                <BarChart data={chartData}>
+                <BarChart data={slicedChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date"/>
+                    <XAxis dataKey="date" tick={CustomXAxis} />
                     <Tooltip />
                     <Legend />
                     <Bar
@@ -81,31 +102,34 @@ export default function CovidData({ }: Props) {
                 </BarChart>
             );
         }
-    };
+    }; //กำหนดตัวแปรในการแสดงกราฟทั้งสองแบบ รวมไปถึงระบุข้อมูลลงไปในกราฟด้วย
 
     const formatDate = (date: string) => {
         const [month, day, year] = date.split("/");
         return `${day}/${month}/${year}`;
-    };
+    }; //เปลี่ยนประเภทการจัดรูปแบบของวันที่ จาก เดือน/วัน/ปี เป็น วัน/เดือน/ปี
 
     useEffect(() => {
 
         async function fetchData() {
             try {
+                //เรียกใช้ lazy loading ระหว่างรอโหลดข้อมูล
                 setIsLoadingLatestData(true);
                 setIsLoadingSortedData(true);
                 setIsLoadingPagination(true);
 
+                //เรียกข้อมูลจาก api โดยมี lastdays เป็น parameter และ selectedDays มีไว้ส่งข้อมูลจำนวนวันที่ต้องการเรียกข้อมูลให้มาแสดง
                 const result = await fetch(`https://disease.sh/v3/covid-19/historical/all?lastdays=${selectedDays}`);
                 const data = await result.json();
                 setHistoricalData(data);
 
+                //เรียกข้อมูลของวันที่ล่าสุดแยกออกมาจาก api (แต่ข้อมูลก็มาจาก api เป็นข้อมูลเดียวกัน)
                 const latestDate = Object.keys(data.cases).pop();
                 if (latestDate) {
                     setLatestDataUpdate(latestDate);
                 }
 
-                // Introduce a delay of 0.5 seconds before turning off loading
+                // กำหนดดีเลย์ 0.5วิ เมื่อครบกำหนดจะปิดการใช้ lazy loading
                 setTimeout(() => {
                     setIsLoadingLatestData(false);
                     setIsLoadingSortedData(false);
@@ -114,7 +138,7 @@ export default function CovidData({ }: Props) {
             } catch (error) {
                 console.error("Error fetching data:", error);
 
-                // Introduce a delay of 0.5 seconds before turning off loading
+                // กำหนดดีเลย์ 0.5วิ เมื่อครบกำหนดจะปิดการใช้ lazy loading
                 setTimeout(() => {
                     setIsLoadingLatestData(false);
                     setIsLoadingSortedData(false);
@@ -126,12 +150,12 @@ export default function CovidData({ }: Props) {
         fetchData();
     }, [selectedDays]);
 
-
     const handleDaysChange = (days: number) => {
         setSelectedDays(days);
         setCurrentPage(1);
-    };
+    }; //ประกาศตัวแปรรับค่าจำนวนวัน พร้อมทั้งระบุประเภทของข้อมูลให้รับได้แค่ตัวเลขเท่านั้น
 
+    //ประกาศตัวแปรไว้ใช้กับ pagination
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentData = Object.entries(historicalData.cases).slice(indexOfFirstItem, indexOfLastItem);
@@ -145,6 +169,7 @@ export default function CovidData({ }: Props) {
         setItemsPerPage(value);
     };
 
+    //ประกาศตัวแปรไว้ใช้ประกอบการจัดเรียงข้อมูลผ่านการกดที่แถว Date ข้อมูลทุกช่องจะเปลี่ยนไปตามรูปแบบการจัดเรียง ในที่นี้จะเป็นการจัดเรียงจากวันที่
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
     const sortedDates = Object.keys(historicalData.cases).sort((a, b) => {
@@ -157,6 +182,7 @@ export default function CovidData({ }: Props) {
         .slice(indexOfFirstItem, indexOfLastItem)
         .map((date) => [date, historicalData.cases[date]]);
 
+    //ทำให้การจัดเรียงข้อมูลในกราฟเปลี่ยนไปด้วย เปลี่ยนตรงตามตาราง
     useEffect(() => {
         const sortedChartData = sortedDates.map((date) => ({
             date: formatDate(date),
@@ -183,10 +209,13 @@ export default function CovidData({ }: Props) {
                             <div className="bg-slate-200 h-4 w-40 rounded"></div>
                         </div>
                     ) : (
-                        <p className="mb-2">
-                            Latest data : {formatDate(latestDataUpdate as string)}
-                        </p>
+                        latestDataUpdate && (
+                            <p className="mb-2">
+                                Latest data updated : {formatDate(latestDataUpdate)}
+                            </p>
+                        )
                     )}
+
                     <div className="mb-2">
                         <label htmlFor="days" className="mr-2">
                             Duration :
@@ -219,28 +248,27 @@ export default function CovidData({ }: Props) {
                             <option value={90}>90 Columns</option>
                         </select>
                     </div>
+                    <div className="mt-4">
+                        <label htmlFor="chartType" className="mr-2">
+                            Chart :
+                        </label>
+                        <select
+                            id="chartType"
+                            className="bg-white border border-gray-300 rounded px-3 py-1"
+                            value={selectedChartType}
+                            onChange={(e) => setSelectedChartType(e.target.value as "line" | "bar")}
+                        >
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                        </select>
+                    </div>
+
                 </div>
                 <div className="w-full lg:w-3/4">
                     <div className="bg-white p-4 rounded-lg shadow-md">
                         <ResponsiveContainer width="100%" height={150}>
                             {renderChart()}
                         </ResponsiveContainer>
-                        <div className="mt-4 flex">
-                            <button
-                                className={`mr-2 ${selectedChartType === "line" ? "bg-blue-500 text-white" : "bg-gray-300"
-                                    } px-3 py-1 rounded`}
-                                onClick={() => setSelectedChartType("line")}
-                            >
-                                Line Chart
-                            </button>
-                            <button
-                                className={`${selectedChartType === "bar" ? "bg-blue-500 text-white" : "bg-gray-300"
-                                    } px-3 py-1 rounded`}
-                                onClick={() => setSelectedChartType("bar")}
-                            >
-                                Bar Chart
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
